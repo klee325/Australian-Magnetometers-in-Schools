@@ -1,0 +1,62 @@
+import time
+from collections import deque
+import matplotlib.pyplot as plt
+from ADCDifferentialPi import ADCDifferentialPi
+
+
+adc = ADCDifferentialPi(0x68, 0x69, 18)
+
+
+
+interval = 0.1       # seconds between reads
+max_points = 100     # number of points to keep on the plt
+
+
+times = deque(maxlen=max_points)
+values1 = deque(maxlen=max_points)
+values2 = deque(maxlen=max_points)
+values3 = deque(maxlen=max_points)
+
+
+plt.ion()
+fig, ax = plt.subplots()
+line1, = ax.plot([], [], '-o', color='r')
+line2, = ax.plot([], [], '-o', color='g')
+line3, = ax.plot([], [], '-o', color='b')
+
+
+ax.set_xlabel("Time (s)")
+ax.set_ylabel("Magnetic Field (µT)")
+
+
+start_time = time.time()
+
+SENSITIVITY = 50  # µT per volt
+
+
+while True:
+	t = time.time() - start_time
+
+
+
+	times.append(t)
+	values1.append(adc.read_voltage(1) * SENSITIVITY)
+	values2.append(adc.read_voltage(2) * SENSITIVITY)
+	values3.append(adc.read_voltage(3) * SENSITIVITY)
+	
+	#print(adc.read_voltage(1))
+
+
+	line1.set_data(times, values1)
+	line2.set_data(times, values2)
+	line3.set_data(times, values3)
+	
+
+	
+	ax.relim()
+	ax.autoscale_view()
+
+
+	plt.pause(0.01)   
+	# time.sleep(interval)
+

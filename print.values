@@ -1,0 +1,33 @@
+import time
+import numpy as np
+from ADCDifferentialPi import ADCDifferentialPi
+
+# --- Setup ---
+adc = ADCDifferentialPi(0x68, 0x69, 18)
+
+SENSITIVITY = 50  # µT per volt
+
+# Set these after calibration (or leave 0 for now)
+OFFSET_1 = 0.0
+OFFSET_2 = 0.0 
+OFFSET_3 = 0.0 
+
+print("Reading magnetometer data... (Ctrl+C to stop)\n")
+
+try:
+    while True:
+        # Read and convert to µT
+        bx = (adc.read_voltage(1) * SENSITIVITY) - OFFSET_1
+        by = (adc.read_voltage(2) * SENSITIVITY) - OFFSET_2
+        bz = (adc.read_voltage(3) * SENSITIVITY) - OFFSET_3
+
+        # Total magnetic field
+        b_total = np.sqrt(bx**2 + by**2 + bz**2)
+
+        # Print nicely formatted output
+        print(f"Bx: {bx:6.2f} µT | By: {by:6.2f} µT | Bz: {bz:6.2f} µT | Total: {b_total:6.2f} µT")
+
+        time.sleep(0.5)
+
+except KeyboardInterrupt:
+    print("\nStopped.")

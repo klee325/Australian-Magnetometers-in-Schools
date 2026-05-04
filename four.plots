@@ -1,0 +1,76 @@
+import time
+import numpy as np
+import matplotlib.pyplot as plt
+from ADCDifferentialPi import ADCDifferentialPi
+
+SENSITIVITY = 50000  # nT per volt
+
+# Offsets (adjust after calibration)
+OFFSET_1 = 0.0
+OFFSET_2 = 0.0
+OFFSET_3 = 0.0
+
+values1 = []
+values2 = []
+values3 = []
+values_total = []
+times = []
+
+start_time = time.time()
+
+adc = ADCDifferentialPi(0x68, 0x69, 18)
+
+# Create figure and 4 subplots ONCE
+fig, axs = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
+
+while True:
+    current_time = time.time() - start_time
+
+    # Read voltages and convert to µT
+    bx = (adc.read_voltage(1) - OFFSET_1) * SENSITIVITY
+    by = (adc.read_voltage(2) - OFFSET_2) * SENSITIVITY
+    bz = (adc.read_voltage(3) - OFFSET_3) * SENSITIVITY
+
+    # Total magnetic field
+    b_total = np.sqrt(bx**2 + by**2 + bz**2)
+
+    # Store values
+    values1.append(bx)
+    values2.append(by)
+    values3.append(bz)
+    values_total.append(b_total)
+    times.append(current_time)
+
+    # Clear each subplot (NOT the whole figure)
+    for ax in axs:
+        ax.clear()
+
+    # X
+    axs[0].plot(times, values1, color='red')
+    axs[0].set_ylabel('Bx (nT)')
+    axs[0].set_title('X Component')
+    axs[0].grid()
+
+    # Y
+    axs[1].plot(times, values2, color='green')
+    axs[1].set_ylabel('By (nT)')
+    axs[1].set_title('Y Component')
+    axs[1].grid()
+
+    # Z
+    axs[2].plot(times, values3, color='blue')
+    axs[2].set_ylabel('Bz (nT)')
+    axs[2].set_title('Z Component')
+    axs[2].grid()
+
+    # Total
+    axs[3].plot(times, values_total, color='black')
+    axs[3].set_ylabel('Total (nT)')
+    axs[3].set_xlabel('Time (s)')
+    axs[3].set_title('Total Magnetic Field')
+    axs[3].grid()
+
+    plt.tight_layout()
+    plt.pause(0.01)
+
+    time.sleep(1) #takes data every 1 sec
