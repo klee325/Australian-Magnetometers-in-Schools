@@ -68,7 +68,7 @@ p4.setLabel('bottom', 'UTC Time')
 def update():
     global values1, values2, values3, values_total, times
 
-    current_time = time.time()
+    current_time = time.time() #time displayed on graph = timezone set on the local device
 
     # Read magnetometer
     bx = (adc.read_voltage(1) - OFFSET_1) * SENSITIVITY
