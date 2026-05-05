@@ -1,0 +1,107 @@
+import sys
+import time
+import numpy as np
+from ADCDifferentialPi import ADCDifferentialPi
+
+from pyqtgraph.Qt import QtWidgets, QtCore
+import pyqtgraph as pg
+
+SENSITIVITY = 50000  # nT per volt
+
+# Offsets (adjust after calibration)
+OFFSET_1 = 0.0
+OFFSET_2 = 0.0
+OFFSET_3 = 0.0
+
+adc = ADCDifferentialPi(0x68, 0x69, 18)
+
+# -----------------------------
+# Data storage
+# -----------------------------
+values1, values2, values3, values_total = [], [], [], []
+times = []
+start_time = time.time()
+
+MAX_POINTS = 1000  # prevents memory explosion
+
+# -----------------------------
+# Qt App setup
+# -----------------------------
+app = QtWidgets.QApplication(sys.argv)
+
+win = pg.GraphicsLayoutWidget(show=True)
+win.setWindowTitle("Magnetometer Live Stream")
+
+# Create 4 plots
+p1 = win.addPlot(title="X Component")
+
+win.nextRow()
+p2 = win.addPlot(title="Y Component")
+
+win.nextRow()
+p3 = win.addPlot(title="Z Component")
+
+win.nextRow()
+p4 = win.addPlot(title="Total Field")
+
+win.nextRow()
+
+curve1 = p1.plot(pen='r')
+curve2 = p2.plot(pen='g')
+curve3 = p3.plot(pen='b')
+curve4 = p4.plot(pen='w')
+
+p1.setLabel('left', 'Bx (nT)')
+p2.setLabel('left', 'By (nT)')
+p3.setLabel('left', 'Bz (nT)')
+p4.setLabel('left', 'Total (nT)')
+p4.setLabel('bottom', 'Time (s)')
+
+# -----------------------------
+# Update function
+# -----------------------------
+def update():
+    global values1, values2, values3, values_total, times
+
+    current_time = time.time() - start_time
+
+    # Read magnetometer
+    bx = (adc.read_voltage(1) - OFFSET_1) * SENSITIVITY
+    by = (adc.read_voltage(2) - OFFSET_2) * SENSITIVITY
+    bz = (adc.read_voltage(3) - OFFSET_3) * SENSITIVITY
+
+    b_total = np.sqrt(bx**2 + by**2 + bz**2)
+
+    # Store
+    times.append(current_time)
+    values1.append(bx)
+    values2.append(by)
+    values3.append(bz)
+    values_total.append(b_total)
+
+    # Limit memory
+    if len(times) > MAX_POINTS:
+        times = times[-MAX_POINTS:]
+        values1 = values1[-MAX_POINTS:]
+        values2 = values2[-MAX_POINTS:]
+        values3 = values3[-MAX_POINTS:]
+        values_total = values_total[-MAX_POINTS:]
+
+    # Update plots (FAST)
+    curve1.setData(times, values1)
+    curve2.setData(times, values2)
+    curve3.setData(times, values3)
+    curve4.setData(times, values_total)
+
+# -----------------------------
+# Timer (replaces while loop)
+# -----------------------------
+timer = QtCore.QTimer()
+timer.timeout.connect(update)
+
+timer.start(1000)  # 1 second (in milliseconds)
+
+# -----------------------------
+# Run
+# -----------------------------
+sys.exit(app.exec())
