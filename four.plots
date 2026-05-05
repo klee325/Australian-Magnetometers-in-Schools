@@ -73,4 +73,4 @@ while True:
     plt.tight_layout()
     plt.pause(0.01)
 
-    time.sleep(3) #takes data every 3 sec
+    time.sleep(2) #takes data every 2 sec
