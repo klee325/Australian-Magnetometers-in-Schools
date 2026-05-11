@@ -84,14 +84,6 @@ def update():
     values3.append(bz)
     values_total.append(b_total)
 
-    # Limit memory
-    if len(times) > MAX_POINTS:
-        times = times[-MAX_POINTS:]
-        values1 = values1[-MAX_POINTS:]
-        values2 = values2[-MAX_POINTS:]
-        values3 = values3[-MAX_POINTS:]
-        values_total = values_total[-MAX_POINTS:]
-
     # Update plots (FAST)
     curve1.setData(times, values1)
     curve2.setData(times, values2)
