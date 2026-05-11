@@ -74,13 +74,6 @@ while True:
     values_total.append(b_total)
     times.append(current_time)
 
-    # Keep only recent data
-    values1 = values1[-MAX_POINTS:]
-    values2 = values2[-MAX_POINTS:]
-    values3 = values3[-MAX_POINTS:]
-    values_total = values_total[-MAX_POINTS:]
-    times = times[-MAX_POINTS:]
-
     # Update plots (NO clearing)
     line1.set_data(times, values1)
     line2.set_data(times, values2)
