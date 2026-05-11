@@ -18,8 +18,12 @@ adc = ADCDifferentialPi(0x68, 0x69, 18)
 fig, axs = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
 
 # Set UTC formatter ONCE
+locator = mdates.AutoDateLocator()
+formatter = mdates.ConciseDateFormatter(locator)
+
 for ax in axs:
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+    ax.xaxis.set_major_locator(locator)
+    ax.xaxis.set_major_formatter(formatter)
 
 while True:
     # TRUE UTC time
