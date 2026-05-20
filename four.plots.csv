@@ -1,0 +1,129 @@
+import time
+import numpy as np
+import matplotlib.pyplot as plt
+import datetime
+import matplotlib.dates as mdates
+from ADCDifferentialPi import ADCDifferentialPi
+import csv
+import os
+
+SENSITIVITY = 50000  # nT per volt
+
+OFFSET_1 = 0.0
+OFFSET_2 = 0.0
+OFFSET_3 = 0.0
+
+# Keep last N points (prevents slowdown)
+MAX_POINTS = 200 #increase this to show more data history
+
+values1, values2, values3, values_total, times = [], [], [], [], []
+
+adc = ADCDifferentialPi(0x68, 0x69, 18)
+
+# Create figure and subplots ONCE
+fig, axs = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
+
+# Create line objects ONCE (this is the key improvement)
+line1, = axs[0].plot([], [], color='red')
+line2, = axs[1].plot([], [], color='green')
+line3, = axs[2].plot([], [], color='blue')
+line4, = axs[3].plot([], [], color='black')
+
+# Labels and titles
+axs[0].set_ylabel('Bx (nT)')
+axs[0].set_title('X Component')
+axs[0].grid()
+
+axs[1].set_ylabel('By (nT)')
+axs[1].set_title('Y Component')
+axs[1].grid()
+
+axs[2].set_ylabel('Bz (nT)')
+axs[2].set_title('Z Component')
+axs[2].grid()
+
+axs[3].set_ylabel('Total (nT)')
+axs[3].set_xlabel('UTC Time')
+axs[3].set_title('Total Magnetic Field')
+axs[3].grid()
+
+# Set formatter ONCE (no more clearing!)
+for ax in axs:
+    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+    ax.xaxis.set_major_formatter(
+        mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S')
+    )
+
+plt.ion()
+fig.autofmt_xdate()
+
+current_date = None
+csv_file = None
+csv_writer = None
+
+# Main loop
+while True:
+    # TRUE UTC time
+    current_time = datetime.datetime.utcnow()
+    date_str = current_time.strftime("%Y-%m-%d")
+    time_str = current_time.strftime("%H:%M:%S")
+
+    # Read magnetometer
+    bx = (adc.read_voltage(1) - OFFSET_1) * SENSITIVITY
+    by = (adc.read_voltage(2) - OFFSET_2) * SENSITIVITY
+    bz = (adc.read_voltage(3) - OFFSET_3) * SENSITIVITY
+
+    b_total = np.sqrt(bx**2 + by**2 + bz**2)
+
+    # ---------------- CSV LOGGING ----------------
+    if date_str != current_date:
+        # Close previous file
+        if csv_file is not None:
+            csv_file.close()
+
+        os.makedirs("data", exist_ok=True) #saves files into a folder called "data"
+        filename = f"data/geomagnetic_{date_str}.csv"
+        file_exists = os.path.isfile(filename)
+
+        csv_file = open(filename, "a", newline="")
+        csv_writer = csv.writer(csv_file)
+
+        # Write header once
+        if not file_exists:
+            csv_writer.writerow(["Date", "Time", "Bx (nT)", "By (nT)", "Bz (nT)", "Total (nT)"])
+
+        current_date = date_str
+
+    # Write row
+    csv_writer.writerow([date_str, time_str, bx, by, bz, b_total])
+    csv_file.flush() #flush() prevents data loss and only opens file when day changes, will only ever lose max one data point
+    # ------------------------------------------------
+
+    # Store data for plotting
+    values1.append(bx)
+    values2.append(by)
+    values3.append(bz)
+    values_total.append(b_total)
+    times.append(current_time)
+
+    # Limit memory (plot only keeps last MAX_POINTS samples, older data removed from memory but still saved to csv, remove this section to show all data on the plot)
+    if len(times) > MAX_POINTS:
+        values1.pop(0)
+        values2.pop(0)
+        values3.pop(0)
+        values_total.pop(0)
+        times.pop(0)
+
+    # Update plots
+    line1.set_data(times, values1)
+    line2.set_data(times, values2)
+    line3.set_data(times, values3)
+    line4.set_data(times, values_total)
+
+    # Rescale axes
+    for ax in axs:
+        ax.relim()
+        ax.autoscale_view()
+
+    plt.pause(0.01)
+    time.sleep(2) #when time is 2 and max points is 200 plot shows around 6.5 mins of data, all data logged in csv
