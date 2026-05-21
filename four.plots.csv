@@ -50,9 +50,7 @@ axs[3].grid()
 # Set formatter ONCE (no more clearing!)
 for ax in axs:
     ax.xaxis.set_major_locator(mdates.AutoDateLocator())
-    ax.xaxis.set_major_formatter(
-        mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S')
-    )
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
 
 plt.ion()
 fig.autofmt_xdate()
