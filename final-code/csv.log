@@ -1,0 +1,70 @@
+import time
+import numpy as np
+import datetime
+from ADCDifferentialPi import ADCDifferentialPi
+import csv
+import os
+import atexit  # closes file if loop crashes
+
+SENSITIVITY = 50000  # nT per volt
+
+OFFSET_1 = 0.0
+OFFSET_2 = 0.0
+OFFSET_3 = 0.0
+
+adc = ADCDifferentialPi(0x68, 0x69, 18)
+
+# ---------------- FILE STATE ----------------
+current_date = None
+csv_file = None
+csv_writer = None
+
+# ---------------- CLEAN EXIT ----------------
+def close_file():
+    if csv_file is not None:
+        csv_file.close()
+
+atexit.register(close_file)
+
+# ================= MAIN LOOP =================
+while True:
+
+    # ---------- UTC TIME ----------
+    current_time = datetime.datetime.utcnow()
+    date_str = current_time.strftime("%Y-%m-%d")
+    time_str = current_time.strftime("%H:%M:%S")
+
+    # ---------- SENSOR ----------
+    bx = (adc.read_voltage(1) - OFFSET_1) * SENSITIVITY
+    by = (adc.read_voltage(2) - OFFSET_2) * SENSITIVITY
+    bz = (adc.read_voltage(3) - OFFSET_3) * SENSITIVITY
+
+    b_total = np.sqrt(bx**2 + by**2 + bz**2)
+
+    # ---------- CSV FILE HANDLING ----------
+    if date_str != current_date:
+        if csv_file is not None:
+            csv_file.close()
+
+        os.makedirs("data", exist_ok=True)
+        filename = f"data/geomagnetic_{date_str}.csv"
+        file_exists = os.path.isfile(filename)
+
+        csv_file = open(filename, "a", newline="")
+        csv_writer = csv.writer(csv_file)
+
+        if not file_exists:
+            csv_writer.writerow([
+                "Date (UTC)", "Time (UTC)",
+                "Bx (nT)", "By (nT)", "Bz (nT)", "Total (nT)"
+            ])
+
+        current_date = date_str
+
+    # ---------- CSV LOG (EVERY SECOND) ----------
+    if csv_writer is not None:
+        csv_writer.writerow([date_str, time_str, bx, by, bz, b_total])
+        csv_file.flush()
+
+    # ---------- SAMPLING RATE ----------
+    time.sleep(1)
